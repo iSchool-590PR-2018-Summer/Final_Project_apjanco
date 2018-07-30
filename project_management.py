@@ -39,6 +39,28 @@ archivematica_likely = 40 #minutes
 archivematica_high = 200
 archivematica_confidence = 6
 
+'''Transcription Settings. Time needed by students to manually transcribe images. 
+   Values are in minutes'''
+number_of_students = random.randrange(1, 6, 1) #between one and six workers
+pages_per_minute = random.randrange(1, 3, 1) #between 1 and 3 pages/minute
+student_work_hours = random.randrange(1, 4, 1) #variable hours between one and four per week
+number_of_images = random.randrange(50, 120, 1) #variable number of images per bag.
+i = 0
+student_max = 100
+student_min = 10
+while i < 10000:
+    student_time = number_of_students * (pages_per_minute * (student_work_hours/60) / number_of_images)
+    i += 1
+    if student_time > student_max:
+        student_max = student_time
+    if student_time < student_min:
+        result_min = student_time
+
+transcribe_low = student_min
+transcribe_likely = student_max - student_min
+transcribe_high = student_max
+transcribe_confidence = 3
+
 
 
 
@@ -73,26 +95,28 @@ def mod_pert_random(low, likely, high, confidence, samples):
 
 
 
-
+### Calculate distributions for each variable
 bag_values = mod_pert_random(bag_low, bag_likely, bag_high, bag_confidence, samples)
 
 download_values = mod_pert_random((bag_size_low /download_low) , (bag_size_likely / download_likely ), (bag_size_high / download_high), download_confidence, samples)
 
 archivematica_values = mod_pert_random(archivematica_low, archivematica_likely, archivematica_high, archivematica_confidence, samples)
 
+transcribe_values = mod_pert_random(transcribe_low, transcribe_likely, transcribe_high, transcribe_confidence, samples)
+
 '''BENCHMARKS
    Here I compute the shortest, median and longest time values in the numpy arrays.
    Will the Monte Carlo results simply return the same values or are they more effective?
 '''
 
-print('Shortest time to completion is: ', bag_values.min() + archivematica_values.min())
-print('Median time to completion is: ', np.median(bag_values) + np.median(archivematica_values))
-print('Longest time to completion is: ', bag_values.max() + archivematica_values.max())
+print('Shortest time to completion is: ', bag_values.min() + archivematica_values.min() + transcribe_values.min())
+print('Median time to completion is: ', np.median(bag_values) + np.median(archivematica_values) + np.median(transcribe_values))
+print('Longest time to completion is: ', bag_values.max() + archivematica_values.max() + transcribe_values.max())
 
 
 
 def choose_random(values):
-    '''A function that takes a probability distribution as input.  It then randomly chooses from the possible
+    '''A function that takes a numpy array probability distribution as input.  It then randomly chooses from the possible
     index values to select a value from the array.
     param: values, a numpy array
     return: single random value from the array'''
@@ -102,18 +126,21 @@ def choose_random(values):
 
 result_max = 1000
 result_min = 100
+if __name__ == '__main__':
+    i = 0
+    while i < 1000000:
+        time = choose_random(bag_values) + choose_random(download_values) + choose_random(archivematica_values) + choose_random(transcribe_values)
+        i += 1
+        if time > result_max:
+            result_max = time
+        if time < result_min:
+            result_min = time
 
-i = 0
-while i < 10000:
-    time = choose_random(bag_values) + choose_random(download_values) + choose_random(archivematica_values)
-    i += 1
-    if time > result_max:
-        result_max = time
-    if time < result_min:
-        result_min = time
-print(result_min, result_max)
+    print('MC Shortest time to completion is: ', result_min)
+    print('MC Longest time to completion is: ', result_max)
 
 
-#Idea, work in whole integers rather than long floats
+    #Idea, work in whole integers rather than long floats
 
-#Train the bag and archivematical objects to find the optimal path
+    #Train the bag and archivematical objects to find the optimal path, optimize their parameters
+
