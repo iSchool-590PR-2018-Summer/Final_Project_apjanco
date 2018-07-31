@@ -4,62 +4,72 @@ import random
 
 
 total_images = 60000
+samples = 10000  # use only one samples variable so no mismatch between variables
 
 
-'''Bag Variable Settings.  Time between when a new bag is available to process. 
-   Each bag is a compressed file using the LOC baggit structure.
-   Values are in minutes'''
-bag_low = 0 #Bags can be received in batches via USB drive
-bag_likely = 2880 #minutes
-bag_high = 10080
-bag_confidence = 2
-samples = 10000 #use only one samples variable so no mismatch between variables
-#def lower_variation():
-    #reduct difference of low and high
+class Bag:
+    '''An object to store Bag Variable Settings.  Time between when a new bag is available to process.
+       Each bag is a compressed file using the LOC baggit structure.
+       Values are in minutes
+    '''
+    def __init__(self):
+        self.low = 0
+        self.likely = 2800
+        self.high = 10080
+        self.confidence = 2
 
-'''Bag Size Variables.  Creates a distribution of bag sizes. 
+class Bag_Size:
+    '''Bag Size Variables.  Creates a distribution of bag sizes.
    Values are in bytes'''
-bag_size_low = 1103657593 #Bags can be received in batches via USB drive
-bag_size_likely = 5165691277
-bag_size_high = 9502383139
-bag_size_confidence = 15
 
+    def __init__(self):
+        self.low = 1103657593 #Bags can be received in batches via USB drive
+        self.likely = 5165691277
+        self.high = 9502383139
+        self.confidence = 15
 
-'''Download speed.  Time needed to download the bag from object storage to the server running Archivematica.'''
-download_low = 90000000 #b/min
-download_likely = 390000000 #b/min
-download_high = 480000000 #b/sec
-download_confidence = 6
+class Download:
+    '''Download speed.  Time needed to download the bag from object storage to the server running Archivematica.'''
+    def __init__(self):
+        self.low = 90000000 #b/min
+        self.likely = 390000000 #b/min
+        self.high = 480000000 #b/sec
+        self.confidence = 6
 
-'''Archivematica Variable Settings. Time needed by Archivematica to transfer and ingest a bag.  Output 
-is a DIP (jpg files for access with metadata) and AIP (tiff files for preservation and metadata). 
+class Archivematica:
+    '''Archivematica Variable Settings. Time needed by Archivematica to transfer and ingest a bag.  Output
+    is a DIP (jpg files for access with metadata) and AIP (tiff files for preservation and metadata).
    Values are in minutes'''
-archivematica_low = 20 #Bags can be received in batches via USB drive
-archivematica_likely = 40 #minutes
-archivematica_high = 200
-archivematica_confidence = 6
 
-'''Transcription Settings. Time needed by students to manually transcribe images. 
-   Values are in minutes'''
-number_of_students = random.randrange(1, 6, 1) #between one and six workers
-pages_per_minute = random.randrange(1, 3, 1) #between 1 and 3 pages/minute
-student_work_hours = random.randrange(1, 4, 1) #variable hours between one and four per week
-number_of_images = random.randrange(50, 120, 1) #variable number of images per bag.
-i = 0
-student_max = 100
-student_min = 10
-while i < 10000:
-    student_time = number_of_students * (pages_per_minute * (student_work_hours/60) / number_of_images)
-    i += 1
-    if student_time > student_max:
-        student_max = student_time
-    if student_time < student_min:
-        result_min = student_time
+    def __init__(self):
+        self.low = 20 #Bags can be received in batches via USB drive
+        self.likely = 40 #minutes
+        self.high = 200
+        self.confidence = 6
+class Transcription:
+    '''Transcription Settings. Time needed by students to manually transcribe images.
+    Values are in minutes'''
 
-transcribe_low = student_min
-transcribe_likely = student_max - student_min
-transcribe_high = student_max
-transcribe_confidence = 3
+    def __init__(self):
+        i = 0
+        student_max = 100
+        student_min = 10
+        while i < 10000:
+            number_of_students = random.randrange(1, 6, 1)  # between one and six workers
+            pages_per_minute = random.randrange(1, 3, 1)  # between 1 and 3 pages/minute
+            student_work_hours = random.randrange(1, 4, 1)  # variable hours between one and four per week
+            number_of_images = random.randrange(50, 120, 1)  # variable number of images per bag.
+            student_time = number_of_students * (pages_per_minute * (student_work_hours/60) / number_of_images)
+            i += 1
+            if student_time > student_max:
+                student_max = student_time
+            if student_time < student_min:
+                result_min = student_time
+
+        self.low = student_min
+        self.likely = student_max - student_min
+        self.high = student_max
+        self.confidence = 3
 
 
 
@@ -96,13 +106,18 @@ def mod_pert_random(low, likely, high, confidence, samples):
 
 
 ### Calculate distributions for each variable
-bag_values = mod_pert_random(bag_low, bag_likely, bag_high, bag_confidence, samples)
+bag = Bag()
+bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
 
-download_values = mod_pert_random((bag_size_low /download_low) , (bag_size_likely / download_likely ), (bag_size_high / download_high), download_confidence, samples)
+bag_size = Bag_Size()
+download = Download()
+download_values = mod_pert_random((bag_size.low /download.low) , (bag_size.likely / download.likely), (bag_size.high / download.high), download.confidence, samples)
 
-archivematica_values = mod_pert_random(archivematica_low, archivematica_likely, archivematica_high, archivematica_confidence, samples)
+archivematica = Archivematica()
+archivematica_values = mod_pert_random(archivematica.low, archivematica.likely, archivematica.high, archivematica.confidence, samples)
 
-transcribe_values = mod_pert_random(transcribe_low, transcribe_likely, transcribe_high, transcribe_confidence, samples)
+transcribe = Transcription()
+transcribe_values = mod_pert_random(transcribe.low, transcribe.likely, transcribe.high, transcribe.confidence, samples)
 
 '''BENCHMARKS
    Here I compute the shortest, median and longest time values in the numpy arrays.
@@ -126,17 +141,23 @@ def choose_random(values):
 
 result_max = 1000
 result_min = 100
+
+simulation = 1000000 # number of times that the simulation is run
 if __name__ == '__main__':
     i = 0
-    while i < 1000000:
+    avg = []
+    while i < simulation:
         time = choose_random(bag_values) + choose_random(download_values) + choose_random(archivematica_values) + choose_random(transcribe_values)
         i += 1
+        avg.append(time)
         if time > result_max:
             result_max = time
         if time < result_min:
             result_min = time
+    result_avg = sum(avg)/len(avg)
 
     print('MC Shortest time to completion is: ', result_min)
+    print('MC Average time to completion is: ', result_avg)
     print('MC Longest time to completion is: ', result_max)
 
 
