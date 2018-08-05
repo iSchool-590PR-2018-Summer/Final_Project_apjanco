@@ -49,9 +49,9 @@ class FileSize:
 class Download:
     """Download speed.  Time needed to download the bag from object storage to the server running Archivematica."""
     def __init__(self):
-        self.low = 90000000 #b/min
-        self.likely = 390000000 #b/min
-        self.high = 480000000 #b/sec
+        self.low = 90000000  # b/min
+        self.likely = 390000000  # b/min
+        self.high = 480000000  # b/sec
         self.confidence = 6
 
 
@@ -85,7 +85,7 @@ class Transcription:
             if student_time > student_max:
                 student_max = student_time
             if student_time < student_min:
-                result_min = student_time
+                student_min = student_time
 
         self.low = student_min
         self.likely = student_max - student_min
@@ -225,6 +225,22 @@ def run_simulation(simulation_iterations, bag_values, download_values, archivema
     return result_min, result_avg, result_max, image_value
 
 
+def total_time(total_images, no_images, result_min, result_avg, result_max):
+    total_number_of_images = total_images
+    images_per_bag = no_images
+    number_of_bags = total_number_of_images / images_per_bag
+    min_time_bag = (result_min * number_of_bags)
+    avg_time_bag = (result_avg * number_of_bags)
+    max_time_bag = (result_max * number_of_bags)
+
+    return min_time_bag, avg_time_bag, max_time_bag
+
+
+def minutes_to_hours(minutes):
+    hours = minutes / 60
+    return hours
+
+
 if __name__ == '__main__':
 
     simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images = simple_simulation()
@@ -232,24 +248,49 @@ if __name__ == '__main__':
        Here I compute the shortest, median and longest time values in the numpy arrays.
        Will the Monte Carlo results simply return the same values? No!
     '''
+    b_result_min = bag_values.min() + archivematica_values.min() + transcribe_values.min()
+    b_result_avg = np.median(bag_values) + np.median(archivematica_values) + np.median(transcribe_values)
+    b_result_max = bag_values.max() + archivematica_values.max() + transcribe_values.max()
+    s_images = no_images.max() - no_images.min()
+    print('****************************************************')
+    print('Benchmark shortest time per bag is: {:.2f}'.format(b_result_min))
+    print('Benchmark median time per bag is: {:.2f}'.format(b_result_avg))
+    print('Benchmark longest time per bag is: {:.2f}'.format(b_result_max))
+    print('Benchmark number of images per bag between {:.2f} and {:.2f}'. format(no_images.min(), no_images.max()))
 
-    print('Benchmark shortest time to completion is: ', bag_values.min() + archivematica_values.min() + transcribe_values.min())
-    print('Benchmark median time to completion is: ',
-          np.median(bag_values) + np.median(archivematica_values) + np.median(transcribe_values))
-    print('Benchmark longest time to completion is: ', bag_values.max() + archivematica_values.max() + transcribe_values.max())
-    print('Benchmark number of images between', no_images.max(), ' and ', no_images.min())
+    min_time_bag, avg_time_bag, max_time_bag = total_time(total_images, s_images, b_result_min, b_result_avg,
+                                                          b_result_max)
+    print(
+        'The total time needed for {} documents is between a minimum of {:.2f} hours, an average of {:.2f} hours and a maximum of {:.2f} hours'.format(
+            total_images, minutes_to_hours(min_time_bag), minutes_to_hours(avg_time_bag),
+            minutes_to_hours(max_time_bag)))
+
     # Simple simulation
+    print('****************************************************')
     s_result_min, s_result_avg, s_result_max, s_images = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images)
-    print('Simple Monte Carlo Shortest time to completion is: ', s_result_min)
-    print('Simple Monte Carlo Average time to completion is: ', s_result_avg)
-    print('Simple Monte Carlo Longest time to completion is: ', s_result_max)
+    print('Simple Monte Carlo Shortest time per bag is: ', s_result_min)
+    print('Simple Monte Carlo Average time per bag is: ', s_result_avg)
+    print('Simple Monte Carlo Longest time per bag is: ', s_result_max)
+    min_time_bag, avg_time_bag, max_time_bag = total_time(total_images, s_images, s_result_min, s_result_avg, s_result_max)
+    print(
+        'The total time needed for {} documents is between a minimum of {:.2f} hours, an average of {:.2f} hours and a maximum of {:.2f} hours'.format(
+            total_images, minutes_to_hours(min_time_bag), minutes_to_hours(avg_time_bag),
+            minutes_to_hours(max_time_bag)))
 
     # Simulation with irregular work
+    print('****************************************************')
     simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images = irregular_student()
     i_result_min, i_result_avg, i_result_max, i_images = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images)
-    print('Irregular Monte Carlo Shortest time to completion is: ', i_result_min)
-    print('Irregular Monte Carlo Average time to completion is: ', i_result_avg)
-    print('Irregular Monte Carlo Longest time to completion is: ', i_result_max)
+    print('Irregular Monte Carlo Shortest time per bag is: ', i_result_min)
+    print('Irregular Monte Carlo Average time per bag is: ', i_result_avg)
+    print('Irregular Monte Carlo Longest time per bag is: ', i_result_max)
+    min_time_bag, avg_time_bag, max_time_bag = total_time(total_images, i_images, i_result_min, i_result_avg,
+                                                          s_result_max)
+    print(
+        'The total time needed for {} documents is between a minimum of {:.2f} hours, an average of {:.2f} hours and a maximum of {:.2f} hours'.format(
+            total_images, minutes_to_hours(min_time_bag), minutes_to_hours(avg_time_bag),
+            minutes_to_hours(max_time_bag)))
+
     print('Difference of minimums is:', abs(s_result_min - i_result_min))
     print('Difference of averages is:', abs(s_result_avg - i_result_avg))
     print('Difference of maximums is:', abs(s_result_max - i_result_max))
@@ -257,7 +298,7 @@ if __name__ == '__main__':
 
 
 """experiments 
-calculate storage, processing time and total time for given number of images
+x calculate storage, processing time and total time for given number of images
 x show difference in completion times given irregularity 
 
 as each variable is increased or decreased, what is effect on time to end result (calculate a weight for each step in 
