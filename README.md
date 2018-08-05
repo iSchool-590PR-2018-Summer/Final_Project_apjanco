@@ -1,5 +1,5 @@
 # 590PR Final_Project
-# Title: Modeling the Effect of Irregularity in Archival Processing
+# Title: Modeling Irregularity in Archival Processing
 ## Team Member(s): Andrew Janco
 
 ## Monte Carlo Simulation Scenario & Purpose:<br>
