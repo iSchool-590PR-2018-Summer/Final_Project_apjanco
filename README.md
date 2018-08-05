@@ -17,11 +17,11 @@ Given a high level of irregularity, I would expect that the irregular simulation
 ## Analytical Summary of your findings: (e.g. Did you adjust the scenario based on previous simulation outcomes?  What are the management decisions one could make from your simulation's output, etc.)
 Greater irregularity is most visible on the extremes of the prediction.  The benchmark, simple simulation and irregular simulation all have similar values in the average.  It is 3865 for benchmark, 4086 for simple and 4028 for irregular. However, the maximum and minumum values 
 
-Simulation|Minimum  | Average   | Maximum   |   |   |
-|---|---|---|---|---|
-Benchmark|   |   |   |   |   |
-Simple|   |   |   |   |   |
-Irregular|   |   |   |   |   |
+| Simulation   | Minimum (work weeks) | Average (work weeks) | Maximum (work weeks) |
+|--------------|:--------------------:|----------------------|----------------------|
+| Benchmark    | 18.56                | 1402.60              | 3752.23              |
+| Simple MC    | 48.95                | 2000.28              | 5000.12              |
+| Irregular MC | 22.57                | 2142.54              | 5432.75              |
 
 ### Prerequisites
 The script was written using Python 3.6.5. 
