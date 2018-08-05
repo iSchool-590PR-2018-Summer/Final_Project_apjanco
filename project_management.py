@@ -2,25 +2,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-
+'''Hyperparameters'''
 total_images = 60000
 samples = 10000  # use only one samples variable so no mismatch between variables
+simulation_iterations = 1000000  # number of times that the simulation is run
+
+simple_simulation = False
+irregular_student = False
 
 
 class Bag:
-    '''An object to store Bag Variable Settings.  Time between when a new bag is available to process.
+    """An object to store Bag Variable Settings.  Time between when a new bag is available to process.
        Each bag is a compressed file using the LOC baggit structure.
        Values are in minutes
-    '''
+    """
     def __init__(self):
         self.low = 0
         self.likely = 2800
         self.high = 10080
         self.confidence = 2
 
-class Bag_Size:
-    '''Bag Size Variables.  Creates a distribution of bag sizes.
-   Values are in bytes'''
+
+class BagSize:
+    """Bag Size Variables.  Creates a distribution of bag sizes.
+   Values are in bytes"""
 
     def __init__(self):
         self.low = 1103657593 #Bags can be received in batches via USB drive
@@ -28,27 +33,31 @@ class Bag_Size:
         self.high = 9502383139
         self.confidence = 15
 
+
 class Download:
-    '''Download speed.  Time needed to download the bag from object storage to the server running Archivematica.'''
+    """Download speed.  Time needed to download the bag from object storage to the server running Archivematica."""
     def __init__(self):
         self.low = 90000000 #b/min
         self.likely = 390000000 #b/min
         self.high = 480000000 #b/sec
         self.confidence = 6
 
+
 class Archivematica:
-    '''Archivematica Variable Settings. Time needed by Archivematica to transfer and ingest a bag.  Output
+    """Archivematica Variable Settings. Time needed by Archivematica to transfer and ingest a bag.  Output
     is a DIP (jpg files for access with metadata) and AIP (tiff files for preservation and metadata).
-   Values are in minutes'''
+   Values are in minutes"""
 
     def __init__(self):
-        self.low = 20 #Bags can be received in batches via USB drive
-        self.likely = 40 #minutes
-        self.high = 200
+        self.low = 20  # Bags can be received in batches via USB drive
+        self.likely = 40  # minutes
+        self.high = 200  # Bags can contain errors in which case they must be resent
         self.confidence = 6
+
+
 class Transcription:
-    '''Transcription Settings. Time needed by students to manually transcribe images.
-    Values are in minutes'''
+    """Transcription Settings. Time needed by students to manually transcribe images.
+    Values are in minutes per image."""
 
     def __init__(self):
         i = 0
@@ -71,7 +80,27 @@ class Transcription:
         self.high = student_max
         self.confidence = 3
 
+    def irregular(self):
 
+        _i = 0
+        _student_max = 100
+        _student_min = 10
+        while _i < 10000:
+            number_of_students = random.randrange(0, 5, 1)  # between zero and six workers
+            pages_per_minute = random.randrange(1, 3, 1)  # between 1 and 3 pages/minute
+            student_work_hours = random.randrange(1, 4, 1)  # variable hours between one and four per week
+            number_of_images = random.randrange(50, 120, 1)  # variable number of images per bag.
+            student_time = number_of_students * (pages_per_minute * (student_work_hours / 60) / number_of_images)
+            _i += 1
+            if student_time > _student_max:
+                _student_max = student_time
+            if student_time < _student_min:
+                _student_min = student_time
+
+        self.low = _student_min
+        self.likely = _student_max - _student_min
+        self.high = _student_max
+        self.confidence = 3
 
 
 def mod_pert_random(low, likely, high, confidence, samples):
@@ -104,64 +133,117 @@ def mod_pert_random(low, likely, high, confidence, samples):
     return beta
 
 
+# Calculate distributions for each variable
+def simple_simulation():
+    bag = Bag()
+    _bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
 
-### Calculate distributions for each variable
-bag = Bag()
-bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
+    bag_size = BagSize()
+    download = Download()
+    _download_values = mod_pert_random((bag_size.low /download.low),
+                                       (bag_size.likely / download.likely),
+                                       (bag_size.high/download.high),
+                                       download.confidence,
+                                       samples)
 
-bag_size = Bag_Size()
-download = Download()
-download_values = mod_pert_random((bag_size.low /download.low) , (bag_size.likely / download.likely), (bag_size.high / download.high), download.confidence, samples)
+    archivematica = Archivematica()
+    _archivematica_values = mod_pert_random(archivematica.low,
+                                            archivematica.likely,
+                                            archivematica.high,
+                                            archivematica.confidence,
+                                            samples)
 
-archivematica = Archivematica()
-archivematica_values = mod_pert_random(archivematica.low, archivematica.likely, archivematica.high, archivematica.confidence, samples)
+    transcribe = Transcription()
+    _transcribe_values = mod_pert_random(transcribe.low,
+                                         transcribe.likely,
+                                         transcribe.high,
+                                         transcribe.confidence,
+                                         samples)
 
-transcribe = Transcription()
-transcribe_values = mod_pert_random(transcribe.low, transcribe.likely, transcribe.high, transcribe.confidence, samples)
+    return simulation_iterations, _bag_values, _download_values, _archivematica_values, _transcribe_values
 
-'''BENCHMARKS
-   Here I compute the shortest, median and longest time values in the numpy arrays.
-   Will the Monte Carlo results simply return the same values or are they more effective?
-'''
 
-print('Shortest time to completion is: ', bag_values.min() + archivematica_values.min() + transcribe_values.min())
-print('Median time to completion is: ', np.median(bag_values) + np.median(archivematica_values) + np.median(transcribe_values))
-print('Longest time to completion is: ', bag_values.max() + archivematica_values.max() + transcribe_values.max())
+if irregular_student:
+    bag = Bag()
+    bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
 
+    bag_size = BagSize()
+    download = Download()
+    download_values = mod_pert_random((bag_size.low / download.low), (bag_size.likely / download.likely),
+                                      (bag_size.high / download.high), download.confidence, samples)
+
+    archivematica = Archivematica()
+    archivematica_values = mod_pert_random(archivematica.low, archivematica.likely, archivematica.high,
+                                           archivematica.confidence, samples)
+
+    transcribe = Transcription()
+    transcribe_values = mod_pert_random(transcribe.low, transcribe.likely, transcribe.high, transcribe.confidence,
+                                        samples)
+    #  Randomly sets values in the distribution to 0 based on irregularity
+    percentage = 0.5
+    irregularity = int(transcribe_values.size * percentage)
+    drop_index = np.random.choice(transcribe_values.size, size=irregularity)
+    transcribe_values[drop_index] = 0
 
 
 def choose_random(values):
-    '''A function that takes a numpy array probability distribution as input.  It then randomly chooses from the possible
+    """A function that takes a numpy array probability distribution as input.  It then randomly chooses from the possible
     index values to select a value from the array.
     param: values, a numpy array
-    return: single random value from the array'''
+    return: single random value from the array"""
     index = random.randrange(0, values.shape[0], 1)
     time =  values[index]
     return time
 
-result_max = 1000
-result_min = 100
 
-simulation = 1000000 # number of times that the simulation is run
-if __name__ == '__main__':
+def run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values):
+    result_max = 1000
+    result_min = 100
     i = 0
     avg = []
-    while i < simulation:
-        time = choose_random(bag_values) + choose_random(download_values) + choose_random(archivematica_values) + choose_random(transcribe_values)
+    while i < simulation_iterations:
+        bag_value = choose_random(bag_values)
+        download_value = choose_random(download_values)
+        archivematica_value = choose_random(archivematica_values)
+        transcribe_value = choose_random(transcribe_values)
+        time = bag_value + download_value + archivematica_value + transcribe_value
         i += 1
         avg.append(time)
         if time > result_max:
             result_max = time
         if time < result_min:
             result_min = time
-    result_avg = sum(avg)/len(avg)
+    result_avg = sum(avg) / len(avg)
 
-    print('MC Shortest time to completion is: ', result_min)
-    print('MC Average time to completion is: ', result_avg)
-    print('MC Longest time to completion is: ', result_max)
+    print('Monte Carlo Shortest time to completion is: ', result_min)
+    print('Monte Carlo Average time to completion is: ', result_avg)
+    print('Monte Carlo Longest time to completion is: ', result_max)
+
+    return result_min, result_avg, result_max
 
 
-    #Idea, work in whole integers rather than long floats
+if __name__ == '__main__':
 
-    #Train the bag and archivematical objects to find the optimal path, optimize their parameters
+    simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values = simple_simulation()
+    run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values)
+    '''BENCHMARKS
+       Here I compute the shortest, median and longest time values in the numpy arrays.
+       Will the Monte Carlo results simply return the same values or are they more effective?
+    '''
 
+    print('Benchmark shortest time to completion is: ', bag_values.min() + archivematica_values.min() + transcribe_values.min())
+    print('Benchmark median time to completion is: ',
+          np.median(bag_values) + np.median(archivematica_values) + np.median(transcribe_values))
+    print('Benchmark longest time to completion is: ', bag_values.max() + archivematica_values.max() + transcribe_values.max())
+
+
+"""experiments 
+calculate storage, processing time and total time for given number of images
+show difference in completion times given irregularity 
+
+as each variable is increased or decreased, what is effect on time to end result (calculate a weight for each step in 
+the process) scenario where student work is consistent versus inconsistent or irregular (dropout) 
+irregular student (not working at unexpected increments)
+high learning curve (rate of progress slowly rises over time) 
+academic year only (work only done during academic year) 
+"""
