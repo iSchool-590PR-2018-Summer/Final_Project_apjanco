@@ -37,6 +37,11 @@ To run the script, you will need to install numpy:<br>
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ## All Sources Used:
-Jeff Bradberry, *Introduction to Monte Carlo Tree Search* [(blog, 07 September 2015)](https://jeffbradberry.com/posts/2015/09/intro-to-monte-carlo-tree-search/)
+- [Class 12 Notebook](https://github.com/iSchool-590PR-2018-Summer/in-class-examples/blob/master/class12_Prob_Distributions.ipynb)
+
+- Jeff Bradberry, *Introduction to Monte Carlo Tree Search* [(blog, 07 September 2015)](https://jeffbradberry.com/posts/2015/09/intro-to-monte-carlo-tree-search/)
+- Lilia Simeonova, *Project estimations with Monte Carlo Analysis* [(The Lilly's Blog, May 3, 2016)](http://thelillysblog.com/2016/05/03/project-estimations-with-monte-carlo-analysis/)
+
+- [Markdown Tables Generator](https://www.tablesgenerator.com/markdown_tables)
 
 
