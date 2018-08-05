@@ -80,28 +80,6 @@ class Transcription:
         self.high = student_max
         self.confidence = 3
 
-    def irregular(self):
-
-        _i = 0
-        _student_max = 100
-        _student_min = 10
-        while _i < 10000:
-            number_of_students = random.randrange(0, 5, 1)  # between zero and six workers
-            pages_per_minute = random.randrange(1, 3, 1)  # between 1 and 3 pages/minute
-            student_work_hours = random.randrange(1, 4, 1)  # variable hours between one and four per week
-            number_of_images = random.randrange(50, 120, 1)  # variable number of images per bag.
-            student_time = number_of_students * (pages_per_minute * (student_work_hours / 60) / number_of_images)
-            _i += 1
-            if student_time > _student_max:
-                _student_max = student_time
-            if student_time < _student_min:
-                _student_min = student_time
-
-        self.low = _student_min
-        self.likely = _student_max - _student_min
-        self.high = _student_max
-        self.confidence = 3
-
 
 def mod_pert_random(low, likely, high, confidence, samples):
     """Produce random numbers according to the 'Modified PERT'
@@ -163,27 +141,30 @@ def simple_simulation():
     return simulation_iterations, _bag_values, _download_values, _archivematica_values, _transcribe_values
 
 
-if irregular_student:
+def irregular_student():
     bag = Bag()
-    bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
+    _bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
 
     bag_size = BagSize()
     download = Download()
-    download_values = mod_pert_random((bag_size.low / download.low), (bag_size.likely / download.likely),
+    _download_values = mod_pert_random((bag_size.low / download.low), (bag_size.likely / download.likely),
                                       (bag_size.high / download.high), download.confidence, samples)
 
     archivematica = Archivematica()
-    archivematica_values = mod_pert_random(archivematica.low, archivematica.likely, archivematica.high,
+    _archivematica_values = mod_pert_random(archivematica.low, archivematica.likely, archivematica.high,
                                            archivematica.confidence, samples)
 
     transcribe = Transcription()
-    transcribe_values = mod_pert_random(transcribe.low, transcribe.likely, transcribe.high, transcribe.confidence,
+    transcribe.confidence = 10
+    _transcribe_values = mod_pert_random(transcribe.low, transcribe.likely, transcribe.high, transcribe.confidence,
                                         samples)
     #  Randomly sets values in the distribution to 0 based on irregularity
-    percentage = 0.5
-    irregularity = int(transcribe_values.size * percentage)
-    drop_index = np.random.choice(transcribe_values.size, size=irregularity)
-    transcribe_values[drop_index] = 0
+    _percentage = 0.5
+    irregularity = int(_transcribe_values.size * _percentage)
+    drop_index = np.random.choice(_transcribe_values.size, size=irregularity)
+    _transcribe_values[drop_index] = 0
+
+    return simulation_iterations, _bag_values, _download_values, _archivematica_values, _transcribe_values
 
 
 def choose_random(values):
@@ -215,26 +196,37 @@ def run_simulation(simulation_iterations, bag_values, download_values, archivema
             result_min = time
     result_avg = sum(avg) / len(avg)
 
-    print('Monte Carlo Shortest time to completion is: ', result_min)
-    print('Monte Carlo Average time to completion is: ', result_avg)
-    print('Monte Carlo Longest time to completion is: ', result_max)
-
     return result_min, result_avg, result_max
 
 
 if __name__ == '__main__':
 
     simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values = simple_simulation()
-    run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values)
     '''BENCHMARKS
        Here I compute the shortest, median and longest time values in the numpy arrays.
-       Will the Monte Carlo results simply return the same values or are they more effective?
+       Will the Monte Carlo results simply return the same values? No!
     '''
 
     print('Benchmark shortest time to completion is: ', bag_values.min() + archivematica_values.min() + transcribe_values.min())
     print('Benchmark median time to completion is: ',
           np.median(bag_values) + np.median(archivematica_values) + np.median(transcribe_values))
     print('Benchmark longest time to completion is: ', bag_values.max() + archivematica_values.max() + transcribe_values.max())
+    # Simple simulation
+    s_result_min, s_result_avg, s_result_max = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values)
+    print('Simple Monte Carlo Shortest time to completion is: ', s_result_min)
+    print('Simple Monte Carlo Average time to completion is: ', s_result_avg)
+    print('Simple Monte Carlo Longest time to completion is: ', s_result_max)
+
+    # Simulation with irregular work
+    simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values = irregular_student()
+    i_result_min, i_result_avg, i_result_max = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values)
+    print('Irregular Monte Carlo Shortest time to completion is: ', i_result_min)
+    print('Irregular Monte Carlo Average time to completion is: ', i_result_avg)
+    print('Irregular Monte Carlo Longest time to completion is: ', i_result_max)
+    print('Difference of minimums is:', abs(s_result_min - i_result_min))
+    print('Difference of averages is:', abs(s_result_avg - i_result_avg))
+    print('Difference of maximums is:', abs(s_result_max - i_result_max))
+
 
 
 """experiments 
