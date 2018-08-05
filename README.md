@@ -1,4 +1,7 @@
 # 590PR Final_Project
+# Title: Modeling the Effect of Irregularity in Archival Processing
+## Team Member(s): Andrew Janco
+
 ## Monte Carlo Simulation Scenario & Purpose:<br>
 This is a Monte Carlo simulation for the management of digitization projects.  It can be useful to generate time estimates given a number of variables for transfer, ingest, and processing.  It is built around the workflow currently being used by Haverford College in our project with the *Grupo de Apoyo Mutuo* in Guatemala.  Our partners in Guatemala scan their records and upload them as zipped [LOC baggit files](https://tools.ietf.org/id/draft-kunze-bagit-14.txt) to cloud [object storage](https://www.digitalocean.com/products/storage/).  The simulation uses a modified probability density function (PERT) to generate values for the Monte Caro simulation.  For each variable, a probability distribution is created given estimates for the lowest value expected, the most likely value and the highest value expected.  There is also a confidence score, which indicates higher or lower confidence in the given values.  Each time that the simulation is run, a random value is chosen from the PERT distribution.  A benchmark is printed to compare the results of the Monte Carlo simulation as compared to simply taking the maximum, minimum and median values from the distributions.  The model also compares simulations with relatively high and low uncertainty in transcription and processing.       
 
