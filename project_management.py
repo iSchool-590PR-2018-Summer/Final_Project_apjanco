@@ -4,11 +4,14 @@ import random
 
 '''Hyperparameters'''
 total_images = 60000
-samples = 10000  # use only one samples variable so no mismatch between variables
+
+samples = 10000  # use only one samples variable so no mismatch between variable distributions.
+
 simulation_iterations = 1000000  # number of times that the simulation is run
 
-simple_simulation = False
-irregular_student = False
+irregular_percent = 0.5
+'''The percent of values in the transcription distribution that are set to 0. 
+This simulates missed shifts and other unforeseen missed work time.'''
 
 
 class Bag:
@@ -17,7 +20,7 @@ class Bag:
        Values are in minutes
     """
     def __init__(self):
-        self.low = 0
+        self.low = 0 # Bags can be received in batches via USB drive
         self.likely = 2800
         self.high = 10080
         self.confidence = 2
@@ -25,12 +28,21 @@ class Bag:
 
 class BagSize:
     """Bag Size Variables.  Creates a distribution of bag sizes.
-   Values are in bytes"""
+   Values are in bytes."""
 
     def __init__(self):
-        self.low = 1103657593 #Bags can be received in batches via USB drive
+        self.low = 1103657593
         self.likely = 5165691277
         self.high = 9502383139
+        self.confidence = 15
+
+class FileSize:
+    """File Size Variables. Creates a distribution of file sizes. Values in bytes."""
+
+    def __init__(self):
+        self.low = 83700454
+        self.likely = 101128426
+        self.high = 102454984
         self.confidence = 15
 
 
@@ -78,7 +90,7 @@ class Transcription:
         self.low = student_min
         self.likely = student_max - student_min
         self.high = student_max
-        self.confidence = 3
+        self.confidence = 10
 
 
 def mod_pert_random(low, likely, high, confidence, samples):
@@ -117,6 +129,13 @@ def simple_simulation():
     _bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
 
     bag_size = BagSize()
+    file_size = FileSize()
+    _no_images = mod_pert_random((bag_size.low / file_size.low),
+                                (bag_size.likely / file_size.likely),
+                                (bag_size.high / file_size.high),
+                                file_size.confidence,
+                                samples)
+
     download = Download()
     _download_values = mod_pert_random((bag_size.low /download.low),
                                        (bag_size.likely / download.likely),
@@ -138,7 +157,7 @@ def simple_simulation():
                                          transcribe.confidence,
                                          samples)
 
-    return simulation_iterations, _bag_values, _download_values, _archivematica_values, _transcribe_values
+    return simulation_iterations, _bag_values, _download_values, _archivematica_values, _transcribe_values, _no_images
 
 
 def irregular_student():
@@ -146,6 +165,12 @@ def irregular_student():
     _bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
 
     bag_size = BagSize()
+    file_size = FileSize()
+    _no_images = mod_pert_random((bag_size.low / file_size.low),
+                                 (bag_size.likely / file_size.likely),
+                                 (bag_size.high / file_size.high),
+                                 file_size.confidence,
+                                 samples)
     download = Download()
     _download_values = mod_pert_random((bag_size.low / download.low), (bag_size.likely / download.likely),
                                       (bag_size.high / download.high), download.confidence, samples)
@@ -155,16 +180,16 @@ def irregular_student():
                                            archivematica.confidence, samples)
 
     transcribe = Transcription()
-    transcribe.confidence = 10
+    transcribe.confidence = 3
     _transcribe_values = mod_pert_random(transcribe.low, transcribe.likely, transcribe.high, transcribe.confidence,
                                         samples)
     #  Randomly sets values in the distribution to 0 based on irregularity
-    _percentage = 0.5
+    _percentage = irregular_percent
     irregularity = int(_transcribe_values.size * _percentage)
     drop_index = np.random.choice(_transcribe_values.size, size=irregularity)
     _transcribe_values[drop_index] = 0
 
-    return simulation_iterations, _bag_values, _download_values, _archivematica_values, _transcribe_values
+    return simulation_iterations, _bag_values, _download_values, _archivematica_values, _transcribe_values, _no_images
 
 
 def choose_random(values):
@@ -177,7 +202,7 @@ def choose_random(values):
     return time
 
 
-def run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values):
+def run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images):
     result_max = 1000
     result_min = 100
     i = 0
@@ -187,6 +212,7 @@ def run_simulation(simulation_iterations, bag_values, download_values, archivema
         download_value = choose_random(download_values)
         archivematica_value = choose_random(archivematica_values)
         transcribe_value = choose_random(transcribe_values)
+        image_value = choose_random(no_images)
         time = bag_value + download_value + archivematica_value + transcribe_value
         i += 1
         avg.append(time)
@@ -196,12 +222,12 @@ def run_simulation(simulation_iterations, bag_values, download_values, archivema
             result_min = time
     result_avg = sum(avg) / len(avg)
 
-    return result_min, result_avg, result_max
+    return result_min, result_avg, result_max, image_value
 
 
 if __name__ == '__main__':
 
-    simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values = simple_simulation()
+    simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images = simple_simulation()
     '''BENCHMARKS
        Here I compute the shortest, median and longest time values in the numpy arrays.
        Will the Monte Carlo results simply return the same values? No!
@@ -211,15 +237,16 @@ if __name__ == '__main__':
     print('Benchmark median time to completion is: ',
           np.median(bag_values) + np.median(archivematica_values) + np.median(transcribe_values))
     print('Benchmark longest time to completion is: ', bag_values.max() + archivematica_values.max() + transcribe_values.max())
+    print('Benchmark number of images between', no_images.max(), ' and ', no_images.min())
     # Simple simulation
-    s_result_min, s_result_avg, s_result_max = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values)
+    s_result_min, s_result_avg, s_result_max, s_images = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images)
     print('Simple Monte Carlo Shortest time to completion is: ', s_result_min)
     print('Simple Monte Carlo Average time to completion is: ', s_result_avg)
     print('Simple Monte Carlo Longest time to completion is: ', s_result_max)
 
     # Simulation with irregular work
-    simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values = irregular_student()
-    i_result_min, i_result_avg, i_result_max = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values)
+    simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images = irregular_student()
+    i_result_min, i_result_avg, i_result_max, i_images = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images)
     print('Irregular Monte Carlo Shortest time to completion is: ', i_result_min)
     print('Irregular Monte Carlo Average time to completion is: ', i_result_avg)
     print('Irregular Monte Carlo Longest time to completion is: ', i_result_max)
@@ -231,7 +258,7 @@ if __name__ == '__main__':
 
 """experiments 
 calculate storage, processing time and total time for given number of images
-show difference in completion times given irregularity 
+x show difference in completion times given irregularity 
 
 as each variable is increased or decreased, what is effect on time to end result (calculate a weight for each step in 
 the process) scenario where student work is consistent versus inconsistent or irregular (dropout) 
