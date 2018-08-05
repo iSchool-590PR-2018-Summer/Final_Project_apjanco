@@ -1,23 +1,24 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import random
 
-'''Hyperparameters'''
+'Hyperparameters'
 total_images = 60000
 
-samples = 10000  # use only one samples variable so no mismatch between variable distributions.
+samples = 100000  # use only one samples variable so no mismatch between variable distributions.
 
-simulation_iterations = 1000000  # number of times that the simulation is run
+'number of times that the simulation is run'
+simulation_iterations = 2000000
 
-irregular_percent = 0.5
 '''The percent of values in the transcription distribution that are set to 0. 
 This simulates missed shifts and other unforeseen missed work time.'''
+irregular_percent = 0.2
 
 
 class Bag:
     """An object to store Bag Variable Settings.  Time between when a new bag is available to process.
        Each bag is a compressed file using the LOC baggit structure.
-       Values are in minutes
+       Values are in minutes.  I created classes so that objects for future research questions
+       where I search for optimal values for these variables.
     """
     def __init__(self):
         self.low = 0 # Bags can be received in batches via USB drive
@@ -160,7 +161,7 @@ def simple_simulation():
     return simulation_iterations, _bag_values, _download_values, _archivematica_values, _transcribe_values, _no_images
 
 
-def irregular_student():
+def irregular_work():
     bag = Bag()
     _bag_values = mod_pert_random(bag.low, bag.likely, bag.high, bag.confidence, samples)
 
@@ -198,7 +199,7 @@ def choose_random(values):
     param: values, a numpy array
     return: single random value from the array"""
     index = random.randrange(0, values.shape[0], 1)
-    time =  values[index]
+    time = values[index]
     return time
 
 
@@ -238,7 +239,14 @@ def total_time(total_images, no_images, result_min, result_avg, result_max):
 
 def minutes_to_hours(minutes):
     hours = minutes / 60
+    work_weeks = hours * 0.025
     return hours
+
+
+def minutes_to_work_weeks(minutes: float) -> float:
+    hours = minutes / 60
+    work_weeks = hours * 0.025
+    return work_weeks
 
 
 if __name__ == '__main__':
@@ -261,49 +269,49 @@ if __name__ == '__main__':
     min_time_bag, avg_time_bag, max_time_bag = total_time(total_images, s_images, b_result_min, b_result_avg,
                                                           b_result_max)
     print(
-        'The total time needed for {} documents is between a minimum of {:.2f} hours, an average of {:.2f} hours and a maximum of {:.2f} hours'.format(
-            total_images, minutes_to_hours(min_time_bag), minutes_to_hours(avg_time_bag),
-            minutes_to_hours(max_time_bag)))
+        'The total time needed for {} documents is between a minimum of {:.2f} hours (or {:.2f} work weeks) , an average of {:.2f} hours ({:.2f} weeks) and a maximum of {:.2f} hours ({:.2f} weeks)'.format(
+            total_images, minutes_to_hours(min_time_bag), minutes_to_work_weeks(min_time_bag), minutes_to_hours(avg_time_bag), minutes_to_work_weeks(avg_time_bag),
+            minutes_to_hours(max_time_bag), minutes_to_work_weeks(max_time_bag)))
 
     # Simple simulation
     print('****************************************************')
     s_result_min, s_result_avg, s_result_max, s_images = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images)
-    print('Simple Monte Carlo Shortest time per bag is: ', s_result_min)
-    print('Simple Monte Carlo Average time per bag is: ', s_result_avg)
-    print('Simple Monte Carlo Longest time per bag is: ', s_result_max)
+    print('Simple Monte Carlo Shortest time per bag is: {:.2f}'.format(s_result_min))
+    print('Simple Monte Carlo Average time per bag is: {:.2f}'.format(s_result_avg))
+    print('Simple Monte Carlo Longest time per bag is: {:.2f}'.format(s_result_max))
     min_time_bag, avg_time_bag, max_time_bag = total_time(total_images, s_images, s_result_min, s_result_avg, s_result_max)
     print(
-        'The total time needed for {} documents is between a minimum of {:.2f} hours, an average of {:.2f} hours and a maximum of {:.2f} hours'.format(
-            total_images, minutes_to_hours(min_time_bag), minutes_to_hours(avg_time_bag),
-            minutes_to_hours(max_time_bag)))
+        'The total time needed for {} documents is between a minimum of {:.2f} hours (or {:.2f} work weeks) , an average of {:.2f} hours ({:.2f} weeks) and a maximum of {:.2f} hours ({:.2f} weeks)'.format(
+            total_images, minutes_to_hours(min_time_bag), minutes_to_work_weeks(min_time_bag),
+            minutes_to_hours(avg_time_bag), minutes_to_work_weeks(avg_time_bag),
+            minutes_to_hours(max_time_bag), minutes_to_work_weeks(max_time_bag)))
 
     # Simulation with irregular work
     print('****************************************************')
-    simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images = irregular_student()
+    simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images = irregular_work()
     i_result_min, i_result_avg, i_result_max, i_images = run_simulation(simulation_iterations, bag_values, download_values, archivematica_values, transcribe_values, no_images)
     print('Irregular Monte Carlo Shortest time per bag is: ', i_result_min)
     print('Irregular Monte Carlo Average time per bag is: ', i_result_avg)
     print('Irregular Monte Carlo Longest time per bag is: ', i_result_max)
     min_time_bag, avg_time_bag, max_time_bag = total_time(total_images, i_images, i_result_min, i_result_avg,
                                                           s_result_max)
+
     print(
-        'The total time needed for {} documents is between a minimum of {:.2f} hours, an average of {:.2f} hours and a maximum of {:.2f} hours'.format(
-            total_images, minutes_to_hours(min_time_bag), minutes_to_hours(avg_time_bag),
-            minutes_to_hours(max_time_bag)))
-
-    print('Difference of minimums is:', abs(s_result_min - i_result_min))
-    print('Difference of averages is:', abs(s_result_avg - i_result_avg))
-    print('Difference of maximums is:', abs(s_result_max - i_result_max))
-
+        'The total time needed for {} documents is between a minimum of {:.2f} hours (or {:.2f} work weeks) , an average of {:.2f} hours ({:.2f} weeks) and a maximum of {:.2f} hours ({:.2f} weeks)'.format(
+            total_images, minutes_to_hours(min_time_bag), minutes_to_work_weeks(min_time_bag),
+            minutes_to_hours(avg_time_bag), minutes_to_work_weeks(avg_time_bag),
+            minutes_to_hours(max_time_bag), minutes_to_work_weeks(max_time_bag)))
 
 
 """experiments 
 x calculate storage, processing time and total time for given number of images
-x show difference in completion times given irregularity 
+x scenario where transcription work is consistent versus highly irregular 
 
 as each variable is increased or decreased, what is effect on time to end result (calculate a weight for each step in 
-the process) scenario where student work is consistent versus inconsistent or irregular (dropout) 
-irregular student (not working at unexpected increments)
+the process) 
 high learning curve (rate of progress slowly rises over time) 
 academic year only (work only done during academic year) 
+
+
+Apparently this project is going to take 31 years to complete, omg!
 """
