@@ -36,12 +36,7 @@ To run the script, you will need to install numpy:<br>
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
-
-
-
-## Analytical Summary of your findings: (e.g. Did you adjust the scenario based on previous simulation outcomes?  What are the management decisions one could make from your simulation's output, etc.)
-
-## Instructions on how to use the program:
-
 ## All Sources Used:
+Jeff Bradberry, *Introduction to Monte Carlo Tree Search* [(blog, 07 September 2015)](https://jeffbradberry.com/posts/2015/09/intro-to-monte-carlo-tree-search/)
+
 
